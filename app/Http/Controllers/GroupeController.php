@@ -5,15 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Groupe;
 use App\Models\GroupeMembre;
 use App\Models\MessageGroupe;
+use App\Models\Communaute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class GroupeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
-        $groupes = Groupe::with('createur')->get();
-        return response()->json($groupes);
+        $groupes = Groupe::with(['createur', 'communaute'])->paginate(10);
+        return view('groupes.index', compact('groupes'));
+    }
+
+    public function create()
+    {
+        $communautes = Communaute::orderBy('nom', 'asc')->get();
+        return view('groupes.create', compact('communautes'));
     }
 
     public function store(Request $request)
@@ -27,95 +39,163 @@ class GroupeController extends Controller
         $groupe = Groupe::create([
             'nom' => $request->nom,
             'description' => $request->description,
-            'communaute_id' => $request->communaute_id,
+            'communaute_id' => $request->communaute_id ?: null, 
             'createur_id' => Auth::id(),
         ]);
 
-        // Ajouter le créateur comme admin
         GroupeMembre::create([
-            'groupe_id' => $groupe->id,
+            'groupe_id' => $groupe->_id,
             'utilisateur_id' => Auth::id(),
             'role' => 'admin',
         ]);
 
-        return response()->json($groupe, 201);
+        return redirect()->route('groupes.show', $groupe->_id);
     }
 
     public function show($id)
     {
-        $groupe = Groupe::with(['createur', 'membres', 'messages.auteur'])->findOrFail($id);
-        return response()->json($groupe);
+        $groupe = Groupe::with([
+            'createur',
+            'communaute',
+            'membres.utilisateur',
+            'messages' => function($query) {
+                $query->orderBy('cree_le', 'desc');
+            },
+            'messages.auteur',
+        ])->findOrFail($id);
+
+        return view('groupes.show', compact('groupe'));
     }
 
-    public function update(Request $request, $id)
+    public function edit($id)
     {
         $groupe = Groupe::findOrFail($id);
+        
         $membre = GroupeMembre::where('groupe_id', $id)
-                    ->where('utilisateur_id', Auth::id())
-                    ->first();
-        if (!$membre || $membre->role !== 'admin') {
-            return response()->json(['message' => 'Non autorisé'], 403);
-        }
+            ->where('utilisateur_id', Auth::id())->first();
+            
 
-        $groupe->update($request->only(['nom', 'description']));
-        return response()->json($groupe);
+        $communautes = Communaute::orderBy('nom', 'asc')->get();
+        
+        return view('groupes.edit', compact('groupe', 'communautes'));
+    }
+
+     public function update(Request $request, $id)
+    {
+        $groupe = Groupe::findOrFail($id);
+        
+        $membre = GroupeMembre::where('groupe_id', $id)
+            ->where('utilisateur_id', Auth::id())->first();
+            
+        
+        $request->validate([
+            'nom' => 'required|string|max:150',
+            'description' => 'nullable|string',
+            'communaute_id' => 'nullable|exists:communautes,_id',
+        ]);
+        
+        $groupe->update([
+            'nom' => $request->nom,
+            'description' => $request->description,
+            'communaute_id' => $request->communaute_id ?: null,
+        ]);
+
+        return redirect()->route('groupes.show', $id);
     }
 
     public function destroy($id)
     {
         $groupe = Groupe::findOrFail($id);
         if ($groupe->createur_id != Auth::id()) {
-            return response()->json(['message' => 'Non autorisé'], 403);
+            abort(403);
         }
         $groupe->delete();
-        return response()->json(['message' => 'Groupe supprimé']);
+
+        return redirect()->route('groupes.index');
     }
 
     public function join($id)
     {
-        $groupe = Groupe::findOrFail($id);
         $existe = GroupeMembre::where('groupe_id', $id)
-                    ->where('utilisateur_id', Auth::id())
-                    ->exists();
+            ->where('utilisateur_id', Auth::id())->exists();
         if ($existe) {
-            return response()->json(['message' => 'Déjà membre'], 400);
+            return back()->with('error', 'Déjà membre.');
         }
-
         GroupeMembre::create([
             'groupe_id' => $id,
             'utilisateur_id' => Auth::id(),
             'role' => 'membre',
         ]);
 
-        return response()->json(['message' => 'Adhésion réussie']);
+        return back();
     }
 
     public function leave($id)
     {
         GroupeMembre::where('groupe_id', $id)
-                    ->where('utilisateur_id', Auth::id())
-                    ->delete();
-        return response()->json(['message' => 'Vous avez quitté le groupe']);
+            ->where('utilisateur_id', Auth::id())->delete();
+
+        return back();
     }
 
     public function sendMessage(Request $request, $id)
     {
         $request->validate(['contenu' => 'required|string']);
-        $groupe = Groupe::findOrFail($id);
-
         $membre = GroupeMembre::where('groupe_id', $id)
-                    ->where('utilisateur_id', Auth::id())
-                    ->exists();
-        if (!$membre) {
-            return response()->json(['message' => 'Vous n\'êtes pas membre'], 403);
+            ->where('utilisateur_id', Auth::id())->exists();
+        if (! $membre) {
+            abort(403);
         }
 
-        $message = MessageGroupe::create([
+        MessageGroupe::create([
             'groupe_id' => $id,
             'auteur_id' => Auth::id(),
             'contenu' => $request->contenu,
         ]);
 
-        return response()->json($message->load('auteur'), 201);
+        return back();
+    }
+
+    
+    public function updateMessage(Request $request, $groupeId, $messageId)
+    {
+        $request->validate(['contenu' => 'required|string']);
+
+        $message = MessageGroupe::where('_id', $messageId)
+            ->where('groupe_id', $groupeId)
+            ->firstOrFail();
+
+        if ($message->auteur_id != Auth::id()) {
+            abort(403, 'Vous ne pouvez modifier que vos propres messages.');
+        }
+
+        $message->update([
+            'contenu' => $request->contenu,
+            'modifie_le' => now(),
+        ]);
+
+        return back();
+    }
+
+    
+    public function destroyMessage($groupeId, $messageId)
+    {
+        $message = MessageGroupe::where('_id', $messageId)
+            ->where('groupe_id', $groupeId)
+            ->firstOrFail();
+
+        $estAuteur = $message->auteur_id == Auth::id();
+        $estAdmin = GroupeMembre::where('groupe_id', $groupeId)
+            ->where('utilisateur_id', Auth::id())
+            ->where('role', 'admin')
+            ->exists();
+
+        if (! $estAuteur && ! $estAdmin) {
+            abort(403, 'Vous ne pouvez pas supprimer ce message.');
+        }
+
+        $message->delete();
+
+        return back();
     }
 }

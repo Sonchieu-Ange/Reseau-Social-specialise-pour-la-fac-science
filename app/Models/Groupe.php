@@ -4,7 +4,6 @@ namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model as Eloquent;
 use MongoDB\Laravel\Relations\BelongsTo;
-use MongoDB\Laravel\Relations\BelongsToMany;
 use MongoDB\Laravel\Relations\HasMany;
 
 class Groupe extends Eloquent
@@ -28,14 +27,26 @@ class Groupe extends Eloquent
         return $this->belongsTo(Utilisateur::class, 'createur_id');
     }
 
-    public function membres(): BelongsToMany
+    public function membres(): HasMany
     {
-        return $this->belongsToMany(Utilisateur::class, null, 'groupe_ids', 'utilisateur_ids')
-                    ->withPivot('role', 'date_adhesion');
+        return $this->hasMany(GroupeMembre::class, 'groupe_id');
     }
 
     public function messages(): HasMany
     {
         return $this->hasMany(MessageGroupe::class, 'groupe_id');
+    }
+
+    public function estMembre($utilisateurId): bool
+    {
+        return $this->membres()->where('utilisateur_id', $utilisateurId)->exists();
+    }
+
+    public function estAdmin($utilisateurId): bool
+    {
+        return $this->membres()
+            ->where('utilisateur_id', $utilisateurId)
+            ->where('role', 'admin')
+            ->exists();
     }
 }

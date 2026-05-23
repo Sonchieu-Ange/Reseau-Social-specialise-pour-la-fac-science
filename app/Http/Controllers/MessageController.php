@@ -9,30 +9,59 @@ use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    public function indexConversations()
+    public function __construct()
     {
-        $userId = Auth::id();
-        // Récupérer les IDs des utilisateurs avec qui on a échangé
-        $sentTo = Message::where('expediteur_id', $userId)->distinct('destinataire_id')->pluck('destinataire_id');
-        $receivedFrom = Message::where('destinataire_id', $userId)->distinct('expediteur_id')->pluck('expediteur_id');
-        $contactIds = $sentTo->merge($receivedFrom)->unique();
-
-        $contacts = Utilisateur::whereIn('_id', $contactIds)->get();
-        return response()->json($contacts);
+        $this->middleware('auth');
     }
 
+    public function index()
+    {
+        $userId = Auth::id();
+
+        $allMessages = Message::where('expediteur_id', $userId)
+            ->orWhere('destinataire_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $contactIds = $allMessages->map(function ($message) use ($userId) {
+            return $message->expediteur_id == $userId
+                ? $message->destinataire_id
+                : $message->expediteur_id;
+        })->unique()->filter()->values();
+
+        $contacts = collect();
+
+        if ($contactIds->isNotEmpty()) {
+            $contacts = Utilisateur::whereIn('_id', $contactIds->toArray())->get();
+
+            $contacts = $contacts->map(function ($contact) use ($userId, $allMessages) {
+                $dernierMessage = $allMessages->first(function ($message) use ($contact, $userId) {
+                    return ($message->expediteur_id == $userId && $message->destinataire_id == $contact->_id) ||
+                           ($message->expediteur_id == $contact->_id && $message->destinataire_id == $userId);
+                });
+
+                $contact->dernier_message = $dernierMessage;
+
+                return $contact;
+            });
+        }
+
+        return view('messages.index', compact('contacts'));
+    }
     public function conversation($userId)
     {
         $currentUserId = Auth::id();
-        $messages = Message::where(function($query) use ($currentUserId, $userId) {
-            $query->where('expediteur_id', $currentUserId)
-                  ->where('destinataire_id', $userId);
-        })->orWhere(function($query) use ($currentUserId, $userId) {
-            $query->where('expediteur_id', $userId)
-                  ->where('destinataire_id', $currentUserId);
+        $messages = Message::where(function ($q) use ($currentUserId, $userId) {
+            $q->where('expediteur_id', $currentUserId)
+                ->where('destinataire_id', $userId);
+        })->orWhere(function ($q) use ($currentUserId, $userId) {
+            $q->where('expediteur_id', $userId)
+                ->where('destinataire_id', $currentUserId);
         })->orderBy('date_envoi')->get();
 
-        return response()->json($messages);
+        $contact = Utilisateur::findOrFail($userId);
+
+        return view('messages.conversation', compact('messages', 'contact'));
     }
 
     public function send(Request $request)
@@ -42,12 +71,42 @@ class MessageController extends Controller
             'contenu' => 'required|string',
         ]);
 
-        $message = Message::create([
+        Message::create([
             'expediteur_id' => Auth::id(),
             'destinataire_id' => $request->destinataire_id,
             'contenu' => $request->contenu,
         ]);
 
-        return response()->json($message, 201);
+        return back();
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'contenu' => 'required|string|max:1000',
+        ]);
+
+        $message = Message::findOrFail($id);
+
+        if ($message->expediteur_id != Auth::id()) {
+            abort(403);
+        }
+
+        $message->update(['contenu' => $request->contenu]);
+
+        return back();
+    }
+
+    public function destroy($id)
+    {
+        $message = Message::findOrFail($id);
+
+        if ($message->expediteur_id != Auth::id()) {
+            abort(403);
+        }
+
+        $message->delete();
+
+        return back();
     }
 }
