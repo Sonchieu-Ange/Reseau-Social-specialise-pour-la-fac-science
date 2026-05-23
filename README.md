@@ -219,14 +219,14 @@ Projet réalisé dans le cadre du cours **INF336 – Ingénierie des Application
 
 | # | Nom & Prénom | Matricule |
 |---|---|---|
-| 1 | OUSMANE IDRISS ADAM | 23A238FS |
-| 2 | *(à compléter)* | — |
-| 3 | *(à compléter)* | — |
-| 4 | *(à compléter)* | — |
-| 5 | *(à compléter)* | — |
-| 6 | *(à compléter)* | — |
-| 7 | *(à compléter)* | — |
-| 8 | *(à compléter)* | — |
+| 1 | BAYANG KAMDI FRECHINOS | 23A248FS |
+| 2 | HAMOA PIERRE CELESTIN| 23B382FS |
+| 3 | KAMWA DANIEL | 20A171FS |
+| 4 | MOHAMADOU AWALOU| 21A286FS |
+| 5 | OUDJAIROU ISSIAKOU | 23B295FS |
+| 6 | OUSMANE IDRISS ADAM | 23A238FS |
+| 7 | SONCHIEU ANGE | 25A011FS |
+| 8 | WANGBARA BERNARD | 23A897FS |
 
 **Encadrants :** Prof. Dr.-Ing. DAYANG PAUL & M. KOTVA Samuel
 
