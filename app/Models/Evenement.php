@@ -4,7 +4,7 @@ namespace App\Models;
 
 use MongoDB\Laravel\Eloquent\Model as Eloquent;
 use MongoDB\Laravel\Relations\BelongsTo;
-use MongoDB\Laravel\Relations\BelongsToMany;
+use MongoDB\Laravel\Relations\HasMany;
 
 class Evenement extends Eloquent
 {
@@ -24,9 +24,8 @@ class Evenement extends Eloquent
         return $this->belongsTo(Utilisateur::class, 'createur_id');
     }
 
-    public function participants(): BelongsToMany
+    public function participants(): HasMany
     {
-        return $this->belongsToMany(Utilisateur::class, null, 'evenement_ids', 'utilisateur_ids')
-                    ->withTimestamps('inscrit_le');
+        return $this->hasMany(EvenementParticipant::class, 'evenement_id');
     }
 }

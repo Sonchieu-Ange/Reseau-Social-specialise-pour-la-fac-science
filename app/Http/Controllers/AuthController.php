@@ -5,18 +5,53 @@ namespace App\Http\Controllers;
 use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'mot_de_passe' => ['required', 'string', 'min:6'],
+        ],
+            [
+                'email.required' => 'L\'adresse e-mail est obligatoire.',
+                'email.email' => 'L\'adresse e-mail doit être valide.',
+                'email.max' => 'L\'adresse e-mail ne peut pas dépasser 150 caractères.',
+                'mot_de_passe.required' => 'Le mot de passe est obligatoire.',
+                'mot_de_passe.min' => 'Le mot de passe doit contenir au moins 6 caractères.',
+            ]
+        );
+
+        if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['mot_de_passe']])) {
+            $request->session()->regenerate();
+
+            return redirect()->intended('/publications');
+        }
+
+        return back()->withErrors([
+            'email' => 'Identifiants invalides.',
+        ])->onlyInput('email');
+    }
+
+    public function showRegister()
+    {
+        return view('auth.register');
+    }
+
     public function register(Request $request)
     {
         $request->validate([
-            'nom' => 'required|string|max:100',
-            'prenom' => 'required|string|max:100',
-            'email' => 'required|string|email|max:150|unique:utilisateurs',
-            'mot_de_passe' => 'required|string|min:6',
-            'role' => 'in:etudiant,enseignant,admin',
+            'nom' => ['required', 'string', 'max:100'],
+            'prenom' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'string', 'email', 'max:150', 'unique:utilisateurs'],
+            'mot_de_passe' => ['required', 'string', 'min:6', 'confirmed'],
+            'role' => ['in:etudiant,enseignant'],
         ]);
 
         $user = Utilisateur::create([
@@ -31,35 +66,17 @@ class AuthController extends Controller
             'centres_interet' => $request->centres_interet,
         ]);
 
-        Auth::login($user);
-        $token = $user->createToken('authToken')->plainTextToken;
+        
 
-        return response()->json([
-            'message' => 'Inscription réussie',
-            'user' => $user,
-            'token' => $token
-        ], 201);
-    }
-
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'mot_de_passe' => 'required',
-        ]);
-
-        if (Auth::attempt(['email' => $credentials['email'], 'password' => $credentials['mot_de_passe']])) {
-            $user = Auth::user();
-            $token = $user->createToken('authToken')->plainTextToken;
-            return response()->json(['token' => $token, 'user' => $user]);
-        }
-
-        return response()->json(['message' => 'Identifiants invalides'], 401);
+        return redirect('/register')->with('success', 'Inscription réussie. Vous pouvez maintenant vous connecter.');
     }
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Déconnexion réussie']);
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }

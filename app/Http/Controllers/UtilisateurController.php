@@ -21,7 +21,6 @@ class UtilisateurController extends Controller
     public function update(Request $request, $id)
     {
         $user = Utilisateur::findOrFail($id);
-        // Vérification d'autorisation à ajouter (ex: Auth::id() == $user->id)
         $user->update($request->only(['nom', 'prenom', 'filiere', 'departement', 'competences', 'centres_interet']));
         return response()->json($user);
     }
@@ -29,7 +28,6 @@ class UtilisateurController extends Controller
     public function destroy($id)
     {
         $user = Utilisateur::findOrFail($id);
-        // Autorisation
         $user->delete();
         return response()->json(['message' => 'Utilisateur supprimé']);
     }
