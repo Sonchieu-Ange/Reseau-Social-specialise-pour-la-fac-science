@@ -1,58 +1,234 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FacSocial — Réseau Social de la Faculté des Sciences
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> Plateforme sociale interne dédiée à la communauté académique de la Faculté des Sciences de l'Université de Ngaoundéré.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Table des matières
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- [À propos du projet](#à-propos-du-projet)
+- [Fonctionnalités](#fonctionnalités)
+- [Stack technique](#stack-technique)
+- [Architecture](#architecture)
+- [Modèle de données](#modèle-de-données)
+- [Rôles & Permissions](#rôles--permissions)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [Sécurité](#sécurité)
+- [Perspectives d'évolution](#perspectives-dévolution)
+- [Auteurs](#auteurs)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## À propos du projet
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+La Faculté des Sciences de l'Université de Ngaoundéré regroupe étudiants, enseignants et personnel administratif, avec des besoins croissants en matière de collaboration en ligne. Faute de plateforme numérique interne, les échanges étaient jusqu'ici dispersés sur des réseaux généralistes sans espace dédié à la vie académique.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**FacSocial** est un réseau social interne sécurisé qui centralise :
+- la communication entre membres de la faculté,
+- les annonces et événements académiques,
+- les groupes thématiques et la messagerie privée,
+- l'administration et la modération des contenus.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Fonctionnalités
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| Module | Description |
+|---|---|
+| **Authentification** | Inscription avec choix de rôle, connexion/déconnexion, protection des routes par middleware |
+| **Publications** | Création multimédia (texte, image, vidéo, document), fil d'actualité, modification et suppression par l'auteur |
+| **Interactions** | Likes (toggle), commentaires, compteurs en temps réel |
+| **Groupes** | Création, adhésion, départ, messagerie interne, gestion par le créateur |
+| **Événements** | Création, participation, annulation, liste des participants |
+| **Annonces** | CRUD réservé aux enseignants et administrateurs, consultation publique |
+| **Communautés** | Regroupement de groupes thématiques, gestion par les créateurs et admins |
+| **Profils** | Consultation publique, modification par le propriétaire uniquement |
+| **Messagerie privée** | Conversations un-à-un, liste des échanges, affichage chronologique |
+| **Administration** | Tableau de bord `/admin`, gestion des utilisateurs, modération des contenus |
 
-```bash
-composer require laravel/boost --dev
+---
 
-php artisan boost:install
+## Stack technique
+
+| Couche | Technologie |
+|---|---|
+| **Backend** | Laravel 13 (PHP 8.4) |
+| **Base de données** | MongoDB (via `mongodb/laravel-mongodb`) |
+| **Frontend** | Bootstrap 5 + Blade Templates |
+| **Routing & Sécurité** | Middleware `auth` + `AdminMiddleware` |
+| **Stockage médias** | Stockage local (images, vidéos, PDF, documents) |
+
+---
+
+## Architecture
+
+Le projet suit une architecture **MVC stricte** (Laravel) :
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── AuthController.php
+│   │   ├── PublicationController.php
+│   │   ├── GroupeController.php
+│   │   ├── EvenementController.php
+│   │   ├── AdminController.php
+│   │   └── ...
+│   └── Middleware/
+│       ├── Authenticate.php
+│       └── AdminMiddleware.php
+├── Models/
+│   ├── Utilisateur.php
+│   ├── Publication.php
+│   ├── Commentaire.php
+│   ├── Like.php
+│   ├── Groupe.php
+│   ├── Evenement.php
+│   ├── Annonce.php
+│   ├── Communaute.php
+│   └── Message.php
+resources/
+└── views/
+    ├── auth/
+    ├── feed/
+    ├── groupes/
+    ├── evenements/
+    ├── admin/
+    ├── profil/
+    └── messages/
+routes/
+└── web.php
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+---
 
-## Contributing
+## Modèle de données
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Le projet utilise **MongoDB** avec les collections suivantes :
 
-## Code of Conduct
+| Collection | Champs principaux |
+|---|---|
+| `utilisateurs` | `_id`, `nom`, `email`*, `mot_de_passe` (bcrypt), `role`, `bio`, `avatar` |
+| `publications` | `_id`, `contenu`, `type_media`, `url_media`, `createur_id` |
+| `commentaires` | `_id`, `contenu`, `auteur_id`, `publication_id` |
+| `likes` | `_id`, `utilisateur_id`, `publication_id` *(index unique composé)* |
+| `groupes` | `_id`, `nom`, `description`, `createur_id`, `communaute_id` |
+| `groupes_membres` | `_id`, `groupe_id`, `utilisateur_id`, `role` *(index unique composé)* |
+| `messages_groupes` | `_id`, `contenu`, `auteur_id`, `groupe_id` |
+| `evenements` | `_id`, `titre`, `description`, `date`, `lieu`, `createur_id` |
+| `evenements_participants` | `_id`, `evenement_id`, `utilisateur_id` *(index unique composé)* |
+| `annonces` | `_id`, `titre`, `contenu`, `createur_id` |
+| `communautes` | `_id`, `nom`, `description`, `createur_id` |
+| `messages` | `_id`, `contenu`, `expediteur_id`, `destinataire_id`, `lu` (bool) |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Rôles & Permissions
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Rôle | Accès |
+|---|---|
+| **Visiteur** | Page d'accueil publique, formulaire d'inscription uniquement |
+| **Étudiant** | Publications, likes, commentaires, groupes, événements, messagerie privée |
+| **Enseignant** | Droits étudiant + création de groupes, événements, annonces et communautés |
+| **Administrateur** | Accès complet à `/admin` : gestion utilisateurs, modération des contenus |
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Installation
+
+### Prérequis
+
+- PHP 8.4+
+- Composer
+- MongoDB (local ou Atlas)
+- Extension PHP MongoDB activée
+- Node.js & npm (pour les assets front-end)
+
+### Étapes
+
+```bash
+# 1. Cloner le dépôt
+git clone https://github.com/<votre-org>/facsocial.git
+cd facsocial
+
+# 2. Installer les dépendances PHP
+composer install
+
+# 3. Copier et configurer l'environnement
+cp .env.example .env
+# Renseigner les variables MONGODB_URI, DB_DATABASE, APP_KEY, etc.
+
+# 4. Générer la clé d'application
+php artisan key:generate
+
+# 5. Installer les dépendances front-end
+npm install && npm run build
+
+# 6. Lancer le serveur de développement
+php artisan serve
+```
+
+L'application sera accessible sur `http://localhost:8000`.
+
+---
+
+## Utilisation
+
+### Créer un compte
+
+Accéder à `/register`, renseigner nom, email, mot de passe et sélectionner un rôle (`etudiant` ou `enseignant`).
+
+### Publier du contenu
+
+Depuis le fil d'actualité, cliquer sur **Nouvelle publication** et joindre optionnellement un fichier multimédia.
+
+### Rejoindre un groupe
+
+Naviguer vers la section **Groupes**, rechercher un groupe et cliquer sur **Rejoindre**.
+
+### Accès administration
+
+Connectez-vous avec un compte `admin` et accéder à `/admin` pour le tableau de bord.
+
+---
+
+## Sécurité
+
+- Mots de passe hachés via **bcrypt** (`Hash::make`)
+- Protection **CSRF** sur tous les formulaires POST/PUT/DELETE
+- Middleware `auth` sur toutes les routes protégées
+- `AdminMiddleware` vérifiant le rôle admin sur les routes `/admin`
+- Validation serveur stricte (`required`, `unique`, `mimes`) sur tous les champs
+- Seul l'auteur peut modifier ou supprimer sa propre ressource
+
+---
+
+## Perspectives d'évolution
+
+- **Notifications temps réel** — WebSockets via Pusher / Laravel Echo
+- **Chat temps réel** — messagerie privée et de groupe avec affichage instantané
+- **Application mobile** — version React Native ou Flutter (iOS & Android)
+- **Recherche avancée** — moteur full-text Elasticsearch sur publications et utilisateurs
+
+---
+
+## Auteurs
+
+Projet réalisé dans le cadre du cours **INF336 – Ingénierie des Applications Web**
+
+| # | Nom & Prénom | Matricule |
+|---|---|---|
+| 1 | OUSMANE IDRISS ADAM | 23A238FS |
+| 2 | *(à compléter)* | — |
+| 3 | *(à compléter)* | — |
+| 4 | *(à compléter)* | — |
+| 5 | *(à compléter)* | — |
+| 6 | *(à compléter)* | — |
+| 7 | *(à compléter)* | — |
+| 8 | *(à compléter)* | — |
+
+**Encadrants :** Prof. Dr.-Ing. DAYANG PAUL & M. KOTVA Samuel
+
+**Université de Ngaoundéré — Faculté des Sciences — Département de Mathématique Informatique**
+Année académique : 2025-2026
