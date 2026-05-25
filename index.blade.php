@@ -1,92 +1,73 @@
 @extends('layouts.app')
-@section('title', 'Messages')
+@section('title', 'Groupes')
 
 @section('content')
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold text-success mb-0" style="font-size: 1.4rem;">
-        <i class="bi bi-chat-dots me-2"></i>Conversations
+        <i class="bi bi-people-fill me-2"></i>Groupes
     </h4>
-    <button class="btn btn-success px-4" data-bs-toggle="modal" data-bs-target="#newConversationModal" style="border-radius: 24px;">
-        <i class="bi bi-plus-circle me-1"></i>Nouvelle conversation
-    </button>
+    <a href="{{ route('groupes.create') }}" class="btn btn-success px-4 py-2" style="border-radius: 24px;">
+        <i class="bi bi-plus-circle me-1"></i>Créer un groupe
+    </a>
 </div>
 
-<div class="list-group shadow-card rounded-3 overflow-hidden">
-    @forelse($contacts as $contact)
-        <a href="{{ route('messages.conversation', $contact->_id) }}" 
-           class="list-group-item list-group-item-action border-0 border-bottom border-light py-3 px-4 d-flex align-items-center gap-3">
-            <div class="flex-shrink-0">
-                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" 
-                     style="width:48px;height:48px;font-weight:600;font-size:1.1rem;">
-                    {{ substr($contact->prenom, 0, 1) }}{{ substr($contact->nom, 0, 1) }}
-                </div>
-            </div>
-            <div class="flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start">
-                    <strong class="fw-semibold">{{ $contact->nom }} {{ $contact->prenom }}</strong>
-                    @if($contact->dernier_message)
-                        <small class="text-muted" style="font-size: 0.7rem;">
-                            {{ $contact->dernier_message->created_at?->diffForHumans() }}
-                        </small>
+<div class="row g-3">
+    @forelse($groupes as $groupe)
+    <div class="col-12 col-md-6 col-lg-4">
+        <div class="card border-0 shadow-card h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="fw-bold text-dark mb-0" style="font-size: 1.1rem;">{{ $groupe->nom }}</h5>
+                    @if($groupe->communaute)
+                        <span class="badge bg-success" style="border-radius: 12px; font-weight: 400;">
+                            {{ $groupe->communaute->nom }}
+                        </span>
+                    @else
+                        <span class="badge bg-light text-dark" style="border-radius: 12px; font-weight: 400;">
+                            Groupe indépendant
+                        </span>
                     @endif
                 </div>
-                @if($contact->dernier_message)
-                    <div class="text-muted small mt-1">
-                        @if($contact->dernier_message->expediteur_id == Auth::id())
-                            <span class="text-muted">Vous :</span>
-                        @endif
-                        {{ Str::limit($contact->dernier_message->contenu, 50) }}
+                
+                <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.6;">
+                    {{ $groupe->description ? Str::limit($groupe->description, 100) : 'Aucune description' }}
+                </p>
+                
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <div>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Par {{ $groupe->createur ? $groupe->createur->prenom . ' ' . $groupe->createur->nom : 'Inconnu' }}
+                        </small>
+                        <div class="small text-muted" style="font-size: 0.7rem;">
+                            {{ $groupe->membres->count() }} membre(s)
+                        </div>
                     </div>
-                @endif
-            </div>
-        </a>
-    @empty
-        <div class="text-center py-5">
-            <div class="text-muted mb-3" style="font-size: 3rem;">📭</div>
-            <p class="text-muted mb-0">Aucune conversation pour le moment.</p>
-        </div>
-    @endforelse
-</div>
-
-<!-- Modal Nouvelle conversation -->
-<div class="modal fade" id="newConversationModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0">
-                <h6 class="modal-title fw-semibold"><i class="bi bi-person-plus me-2"></i>Nouvelle conversation</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="userSearch" class="form-control mb-3" placeholder="Rechercher un utilisateur..." style="border-radius: 24px; padding: 0.5rem 1rem;">
-                <div id="userList" class="list-group rounded-3 border-0 shadow-sm">
-                    @php
-                        $allUsers = \App\Models\Utilisateur::where('_id', '!=', Auth::id())->get();
-                    @endphp
-                    @foreach($allUsers as $user)
-                        <a href="{{ route('messages.conversation', $user->_id) }}" 
-                           class="list-group-item list-group-item-action user-item border-0 border-bottom border-light py-2 d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" 
-                                 style="width:32px;height:32px;font-weight:600;font-size:0.8rem;">
-                                {{ substr($user->prenom, 0, 1) }}{{ substr($user->nom, 0, 1) }}
-                            </div>
-                            {{ $user->nom }} {{ $user->prenom }}
-                        </a>
-                    @endforeach
+                    <a href="{{ route('groupes.show', $groupe->_id) }}" class="btn btn-success btn-sm px-3" style="border-radius: 20px;">
+                        Voir le groupe
+                    </a>
                 </div>
             </div>
         </div>
     </div>
+    @empty
+    <div class="col-12">
+        <div class="card border-0 shadow-card">
+            <div class="card-body text-center py-5">
+                <p class="text-muted mb-3">Aucun groupe pour le moment.</p>
+                <a href="{{ route('groupes.create') }}" class="btn btn-success px-4 py-2" style="border-radius: 24px;">
+                    Créer mon premier groupe
+                </a>
+            </div>
+        </div>
+    </div>
+    @endforelse
 </div>
 
-<script>
-    document.getElementById('userSearch').addEventListener('input', function() {
-        let filter = this.value.toLowerCase();
-        document.querySelectorAll('.user-item').forEach(function(item) {
-            let name = item.textContent.toLowerCase();
-            item.style.display = name.includes(filter) ? '' : 'none';
-        });
-    });
-</script>
+@if($groupes->hasPages())
+<div class="d-flex justify-content-center mt-4">
+    {{ $groupes->links() }}
+</div>
+@endif
 
 @endsection
